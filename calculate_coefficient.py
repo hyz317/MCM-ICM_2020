@@ -53,7 +53,7 @@ for i in range(1, 39):
     coef_sum = 0
     for name in name_list:
         coef_sum += coef[name]
-    full_coef.append(coef_sum - 7.5)
+    full_coef.append(coef_sum / len(name_list) - 0.5)
 
 color = ['red', 'blue', 'green', 'green', 'green', 'red', 'green', 'blue', 'green', 
 'green', 'red', 'blue', 'green', 'red', 'red', 'blue', 'red', 'red', 'blue', 'blue', 
