@@ -305,14 +305,14 @@ def getPos(name_list, data):
     for ls in data:
         if ls[1] == "Huskies":
             if ls[3] == '':
-                num = store(dict, ls[2], ls[8], ls[9], num, 14)
+                num = store(dict, ls[2], ls[8], ls[9], num, 30)
             else:
-                num = store(dict, ls[2], ls[8], ls[9], num, 14)
+                num = store(dict, ls[2], ls[8], ls[9], num, 30)
                 # num = store(dict, ls[3], ls[10], ls[11][:-1], num, 11)
     return dict
 
 
-def showPlot(name_list, data, edge_dict):
+def showPlot(name_list, data, edge_dict, pgr):
     dict = getPos(name_list, data)
     mean_x_ls = []
     mean_y_ls = []
@@ -324,10 +324,10 @@ def showPlot(name_list, data, edge_dict):
     str2color = {"G": "#238E23", "F": "#BC1717", "M": "#D9D919", "D": "#3232CD"}
     id = -1
 
-    pgr = pagerank(edge_dict, name_list)
+    # pgr = pagerank(edge_dict, name_list)
 
     for member in dict:
-        # print(member)
+        print(member, id)
         id += 1
 
         if member[8] == 'G':
@@ -347,12 +347,12 @@ def showPlot(name_list, data, edge_dict):
         mean_y_ls.append(np.mean(y_ls))
 
         name2id[member] = id
-        id_dict[id] = member[8:10]
+        id_dict[id] = member[8:]
         pos_ls.append((np.mean(x_ls), np.mean(y_ls)))
         color_ls.append(str2color[member[8]])
-        size_ls.append(pgr[member] * 150)
+        size_ls.append(pgr[member] * 300)
 
-        print(member, np.mean(x_ls), np.mean(y_ls))
+        # print(member, np.mean(x_ls), np.mean(y_ls))
 
     plt.xlim(0, 100)
     plt.ylim(0, 100)
@@ -364,10 +364,11 @@ def showPlot(name_list, data, edge_dict):
             if i in name2id and j in name2id:
                 G.add_edge(name2id[i], name2id[j], weight=edge_dict[i][j])
 
-    nx.draw_networkx_edges(G, pos_ls, width=[float(d['weight'] * 1) for (u, v, d) in G.edges(data=True)])
+    nx.draw_networkx_edges(G, pos_ls, width=[float(d['weight'] / 3) for (u, v, d) in G.edges(data=True)])
     nx.draw_networkx_nodes(G, pos_ls, node_color=color_ls, node_size=size_ls)
     nx.draw_networkx_labels(G, pos_ls, id_dict)
 
+    plt.gca().invert_yaxis()
     plt.show()
 
 
@@ -387,31 +388,103 @@ def pagerank(net, name_list):
         for i in name_list:
             update[i] = 0
             for j in name_list:
-                update[i] += dict[j] * net[i][j] / sum[j]
+                if sum[j] != 0:
+                    update[i] += dict[j] * net[i][j] / sum[j]
         for i in name_list:
             loss += abs(update[i] - dict[i])
             dict[i] = update[i]
         if loss < 0.000001:
-            print(epoch)
+            # print(epoch)
             break
     return dict
 
 
 full_data = read()
-match_data = getMatchData(1, full_data)
+full_name_list = getNameList(full_data)
+relation_dict = getEmptyMatrix(full_name_list)
+full_eva = getEmptyMatrix(full_name_list)
+full_pgr = {}
+print(full_eva.__sizeof__())
 
-name_list = getNameList(match_data)
-time_range_dict = getTimeRangeDict(name_list, match_data)
+for i in range(1, 39):
+    match_data = getMatchData(i, full_data)
 
-stab = stability(name_list, match_data)
-acu = accuracy(name_list, match_data)
-dif = difficulty(name_list, match_data)
-time_dict = personReward(time_range_dict)
+    name_list = getNameList(match_data)
+    time_range_dict = getTimeRangeDict(name_list, match_data)
 
-ws, wa, wd, stab, acu, dif = getWeight(stab, acu, dif, name_list)
-eva = evaluation(name_list, stab, acu, dif, ws, wa, wd, time_dict)
-# pgr = pagerank(eva, name_list)
-# print(pgr)
-showPlot(name_list, match_data, eva)
+    # print(time_range_dict)
+
+    for j in name_list:
+        for k in name_list:
+            relation_dict[j][k] += 1
+
+    stab = stability(name_list, match_data)
+    acu = accuracy(name_list, match_data)
+    dif = difficulty(name_list, match_data)
+    time_dict = personReward(time_range_dict)
+
+    ws, wa, wd, stab, acu, dif = getWeight(stab, acu, dif, name_list)
+    eva = evaluation(name_list, stab, acu, dif, ws, wa, wd, time_dict)
+
+    for j in name_list:
+        for k in name_list:
+            full_eva[j][k] += eva[j][k]
+
+    pgr = pagerank(eva, name_list)
+
+    for j in name_list:
+        if j in full_pgr:
+            full_pgr[j] += pgr[j]
+        else:
+            full_pgr[j] = pgr[j]
+
+    # print(pgr)
+    # showPlot(name_list, match_data, eva, pgr)
+
+for i in full_name_list:
+    for j in full_name_list:
+        if relation_dict[i][j] == 0:
+            full_eva[i][j] = 0
+        else:
+            full_eva[i][j] /= relation_dict[i][j]
+
+for i in full_name_list:
+    full_pgr[i] /= relation_dict[i][i]
+
+showPlot(full_name_list, full_data, full_eva, full_pgr)
+
+single_ls = []
+double_ls = []
+triple_ls = []
+
+for i in full_name_list:
+    for j in full_name_list:
+        if i == j:
+            break
+        double_ls.append((i, j, full_eva[i][j]))
+
+for i in full_name_list:
+    for j in full_name_list:
+        if i == j:
+            break
+        for k in full_name_list:
+            if j == k:
+                break
+            triple_ls.append((i, j, k, full_eva[i][j] + full_eva[j][k] + full_eva[k][i]))
+
+single_ls = sorted(full_pgr.items(), reverse=True, key=lambda x:x[1])
+double_ls = sorted(double_ls, reverse=True, key=lambda x:x[2])
+triple_ls = sorted(triple_ls, reverse=True, key=lambda x:x[3])
+
+# for i in range(10):
+#     print("[#{0}]\t{1}\t{2}\t{3}\t{4}".format(i+1, triple_ls[i][0][8:], triple_ls[i][1][8:],
+#                                               triple_ls[i][2][8:], triple_ls[i][3]))
+
+print(single_ls)
+
+for i in range(10):
+    print("[#{0}]\t{1}\t{2}".format(i+1, single_ls[i][0], single_ls[i][1]))
+
+# print(relation_dict)
 
 
