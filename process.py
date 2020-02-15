@@ -1,22 +1,31 @@
 import re
 import math
 import numpy as np
+import matplotlib.pyplot as plt
+import networkx as nx
 
 
 def sigmoid(x):
-     y = 1.0 / (1.0 + np.exp(-x))
-     return y
+    y = 1.0 / (1.0 + np.exp(-x))
+    return y
 
 
 # read csv file.
 def read():
     with open("fullevents.csv", 'r') as f:
         full_ls = []
-        for i in f.readlines()[1:1522]:
+        for i in f.readlines():
             ls = i[:-1].split(',')
             full_ls.append(ls)
-            # print(ls)
     return full_ls
+
+
+def getMatchData(match_id, data):
+    ls = []
+    for i in data:
+        if i[0] == str(match_id):
+            ls.append(i)
+    return ls
 
 
 # get a list of Huskies' members who has entered the court.
@@ -36,16 +45,6 @@ def getEmptyMatrix(name_list):
         for j in name_list:
             dict_i[j] = 0
         dict[i] = dict_i
-    return dict
-
-
-# get numbers of successful passes (2-dimension dictionary).
-def getPassMatrix(name_list, data):
-    dict = getEmptyMatrix(name_list)
-    for i in data:
-        if i[1] == "Huskies" and i[3] != "" and i[6] == "Pass":
-            dict[i[2]][i[3]] += 1
-            dict[i[3]][i[2]] += 1
     return dict
 
 
@@ -94,13 +93,13 @@ def getXMean(id_list, data):
     return np.mean(x_ls)
 
 
-# get edge gains of passing (2-dimension dictionary).
-def passReward(name_list, data):
+# get stability reward
+def stability(name_list, data):
     num = 0
     endnum = 0
     dict = getEmptyMatrix(name_list)
 
-    while endnum < 1521 and num < 1521:
+    while endnum < data.__len__() and num < data.__len__():
         pass_ls = []
         player_ls = []
         pass_num = 0
@@ -115,8 +114,7 @@ def passReward(name_list, data):
             num += 1
             endnum += 1
             continue
-
-        while endnum < 1521:
+        while endnum < data.__len__():
             if data[endnum][6] == "Free Kick" and data[endnum][1] == "Huskies" and duel_num < 3:
                 endnum += 1
                 duel_num = 0
@@ -130,9 +128,10 @@ def passReward(name_list, data):
                 pass_ls.append(endnum)
                 if data[endnum][2] not in player_ls and data[endnum][3] != "":
                     player_ls.append((data[endnum][2], data[endnum][3]))
-                endnum += 1
                 if data[endnum][3] != "":
                     pass_num += 1
+                endnum += 1
+                # print(endnum)
                 duel_num = 0
             elif data[endnum][6] == "Duel" and duel_num < 3:
                 endnum += 1
@@ -144,8 +143,8 @@ def passReward(name_list, data):
                 # print("({0}, {1}) {2}".format(num+2, endnum+1, player_ls))
                 mean = getXMean(pass_ls, data)
                 for players in player_ls:
-                    dict[players[0]][players[1]] += float(pow(max(mean - 30, 0), 2)) / 3000
-                    dict[players[1]][players[0]] += float(pow(max(mean - 30, 0), 2)) / 3000
+                    dict[players[0]][players[1]] += float(pow(max(mean - 30, 0), 2)) / 360
+                    dict[players[1]][players[0]] += float(pow(max(mean - 30, 0), 2)) / 360
                     # print(float(pow(max(mean - 30, 0), 2)) / 3000)
                 num = endnum
                 break
@@ -153,7 +152,30 @@ def passReward(name_list, data):
     return dict
 
 
-# get node gains of passing (dictionary).
+# get accuracy reward
+def accuracy(name_list, data):
+    dict = getEmptyMatrix(name_list)
+    for i in data:
+        if i[1] == "Huskies" and i[3] != "" and i[6] == "Pass":
+            dict[i[2]][i[3]] += 1
+            dict[i[3]][i[2]] += 1
+    return dict
+
+
+# get reward for difficulty
+def difficulty(name_list, data):
+    dict = getEmptyMatrix(name_list)
+    for i in data:
+        if i[1] == 'Huskies' and i[3] != "" and i[6] == 'Pass':
+            dis = math.sqrt(pow((1.05 * (eval(i[8]) - eval(i[10]))), 2) + pow((0.68 * (eval(i[9]) - eval(i[11]))), 2))
+            dis /= math.sqrt(105 * 105 + 68 * 68)
+            pos = max((eval(i[8]) + eval(i[10])) / 2, 50) / 60 - 2 / 3
+            dict[i[2]][i[3]] += (dis + 4 * pos)
+            dict[i[3]][i[2]] += (dis + 4 * pos)
+    return dict
+
+
+# get extra product factor as compensation for short playing time
 def personReward(time_dict):
     dict = {}
     for i in time_dict:
@@ -167,6 +189,7 @@ def personReward(time_dict):
     return dict
 
 
+'''
 def personPenalty1(name_list, data):
     dict = {}
     for name in name_list:
@@ -196,27 +219,199 @@ def personPenalty2(name_list, data):
                 dict[i[2]] *= (sigmoid(dis / 100.0 - 0.5) * 0.4 + 0.8)
 
     return dict
+'''
 
+
+# entropy method to get weight
+def getWeight(dict1, dict2, dict3, lst):
+    N = 0
+    sum = 0
+    e1 = 0
+    for i in lst:
+        for j in lst:
+            if dict1[i][j] != 0:
+                N += 1
+                sum += dict1[i][j]
+    for i in lst:
+        for j in lst:
+            if dict1[i][j] != 0:
+                p = dict1[i][j] / sum
+                dict1[i][j] = p * 100
+                e1 += -(p * math.log(p))
+    e1 /= math.log(N)
+    e1 = 1 - e1
+
+    N = 0
+    sum = 0
+    e2 = 0
+    for i in lst:
+        for j in lst:
+            if dict2[i][j] != 0:
+                N += 1
+                sum += dict2[i][j]
+    for i in lst:
+        for j in lst:
+            if dict2[i][j] != 0:
+                p = dict2[i][j] / sum
+                dict2[i][j] = p * 100
+                e2 += -(p * math.log(p))
+    e2 /= math.log(N)
+    e2 = 1 - e2
+
+    N = 0
+    sum = 0
+    e3 = 0
+    for i in lst:
+        for j in lst:
+            if dict3[i][j] != 0:
+                N += 1
+                sum += dict3[i][j]
+    for i in lst:
+        for j in lst:
+            if dict3[i][j] != 0:
+                p = dict3[i][j] / sum
+                dict3[i][j] = p * 100
+                e3 += -(p * math.log(p))
+    e3 /= math.log(N)
+    e3 = 1 - e3
+
+    sum = e1 + e2 + e3
+    return e1 / sum, e2 / sum, e3 / sum, dict1, dict2, dict3
+
+
+def evaluation(name_list, dict1, dict2, dict3, w1, w2, w3, time_dict):
+    dict = getEmptyMatrix(name_list)
+    for i in name_list:
+        for j in name_list:
+            dict[i][j] = time_dict[i] * time_dict[j] * (w1 * dict1[i][j] + w2 * dict2[i][j] + w3 * dict3[i][j])
+            dict[j][i] = dict[i][j]
+    return dict
+
+
+def store(dict, player, posx, posy, num, MAXNUM):
+    if not posx:
+        return num
+    if player in dict:
+        dict[player].append((eval(posx), eval(posy)))
+    elif num < MAXNUM:
+        dict[player] = [(eval(posx), eval(posy))]
+        num += 1
+    return num
+
+
+def getPos(name_list, data):
+    num = 0
+    dict = {}
+    for ls in data:
+        if ls[1] == "Huskies":
+            if ls[3] == '':
+                num = store(dict, ls[2], ls[8], ls[9], num, 14)
+            else:
+                num = store(dict, ls[2], ls[8], ls[9], num, 14)
+                # num = store(dict, ls[3], ls[10], ls[11][:-1], num, 11)
+    return dict
+
+
+def showPlot(name_list, data, edge_dict):
+    dict = getPos(name_list, data)
+    mean_x_ls = []
+    mean_y_ls = []
+    pos_ls = []
+    color_ls = []
+    size_ls = []
+    id_dict = {}
+    name2id = {}
+    str2color = {"G": "#238E23", "F": "#BC1717", "M": "#D9D919", "D": "#3232CD"}
+    id = -1
+
+    pgr = pagerank(edge_dict, name_list)
+
+    for member in dict:
+        # print(member)
+        id += 1
+
+        if member[8] == 'G':
+            for i in range(dict[member].__len__()):
+                if dict[member][i][0] == 0 and dict[member][i][1] == 0:
+                    dict[member][i] = (7, 50)
+                if dict[member][i][0] == 100 and dict[member][i][1] == 100:
+                    dict[member][i] = (7, 50)
+
+        x_ls = []
+        y_ls = []
+        for i in dict[member]:
+            x_ls.append(i[0])
+            y_ls.append(i[1])
+
+        mean_x_ls.append(np.mean(x_ls))
+        mean_y_ls.append(np.mean(y_ls))
+
+        name2id[member] = id
+        id_dict[id] = member[8:10]
+        pos_ls.append((np.mean(x_ls), np.mean(y_ls)))
+        color_ls.append(str2color[member[8]])
+        size_ls.append(pgr[member] * 150)
+
+        print(member, np.mean(x_ls), np.mean(y_ls))
+
+    plt.xlim(0, 100)
+    plt.ylim(0, 100)
+
+    G = nx.Graph()
+
+    for i in edge_dict:
+        for j in edge_dict[i]:
+            if i in name2id and j in name2id:
+                G.add_edge(name2id[i], name2id[j], weight=edge_dict[i][j])
+
+    nx.draw_networkx_edges(G, pos_ls, width=[float(d['weight'] * 1) for (u, v, d) in G.edges(data=True)])
+    nx.draw_networkx_nodes(G, pos_ls, node_color=color_ls, node_size=size_ls)
+    nx.draw_networkx_labels(G, pos_ls, id_dict)
+
+    plt.show()
+
+
+def pagerank(net, name_list):
+    sum = {}
+    dict = {}
+    update = {}
+    for i in name_list:
+        dict[i] = 1
+        sum[i] = 0
+        update[i] = 0
+    for i in name_list:
+        for j in name_list:
+            sum[i] += net[i][j]
+    for epoch in range(10000):
+        loss = 0
+        for i in name_list:
+            update[i] = 0
+            for j in name_list:
+                update[i] += dict[j] * net[i][j] / sum[j]
+        for i in name_list:
+            loss += abs(update[i] - dict[i])
+            dict[i] = update[i]
+        if loss < 0.000001:
+            print(epoch)
+            break
+    return dict
 
 
 full_data = read()
-name_list = getNameList(full_data)
-time_range_dict = getTimeRangeDict(name_list, full_data)
+match_data = getMatchData(1, full_data)
 
-print(personPenalty2(name_list, full_data))
+name_list = getNameList(match_data)
+time_range_dict = getTimeRangeDict(name_list, match_data)
 
+stab = stability(name_list, match_data)
+acu = accuracy(name_list, match_data)
+dif = difficulty(name_list, match_data)
+time_dict = personReward(time_range_dict)
 
-
-
-
-
-
-
-
-
-
-
-
-
+ws, wa, wd, stab, acu, dif = getWeight(stab, acu, dif, name_list)
+eva = evaluation(name_list, stab, acu, dif, ws, wa, wd, time_dict)
+# pgr = pagerank(eva, name_list)
+# print(pgr)
+showPlot(name_list, match_data, eva)
 
 
