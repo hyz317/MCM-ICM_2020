@@ -10,6 +10,36 @@ def sigmoid(x):
     return y
 
 
+def dijkstra(graph, src):
+    # init
+    visited = []
+    distance = {src: 0}
+    node = list(range(len(graph[0])))
+    edges = []
+    if src in node:
+        node.remove(src)
+        visited.append(src)
+    else:
+        return None
+    for i in node:
+        distance[i] = graph[src][i]
+    prefer = src
+    while node:
+        _distance = float('inf')
+        for i in visited:
+            for j in node:
+                if graph[i][j] > 0:
+                    if _distance > distance[i] + graph[i][j]:
+                        _distance = distance[j] = distance[i] + graph[i][j]
+                        prefer = j
+                        father = i
+        visited.append(prefer)
+        edges.append((father, prefer))
+        # print(node)
+        node.remove(prefer)
+    return distance, edges
+
+
 # read csv file.
 def read():
     with open("fullevents.csv", 'r') as f:
@@ -455,7 +485,7 @@ def getZone2(pos):
         pos = (99, pos[1])
     if pos[1] == 100:
         pos = (pos[0], 99)
-    return int(pos[0] / 33.3) * 6 + int(pos[1] / 16.7)
+    return int(pos[1] / 33.3) * 6 + int(pos[0] / 16.7)
 
 
 def showZonePlot(pos_list, pos_dict):
@@ -532,7 +562,7 @@ def showZone2Plot(zone_dict):
         for j in range(18):
             G.add_edge(i, j, weight=zone_dict[i][j])
 
-    nx.draw_networkx_edges(G, zone_pos_ls, width=[float(d['weight'] / 100) for (u, v, d) in G.edges(data=True)])
+    nx.draw_networkx_edges(G, zone_pos_ls, width=[float(d['weight'] / 10) for (u, v, d) in G.edges(data=True)])
     nx.draw_networkx_nodes(G, zone_pos_ls)
     # nx.draw_networkx_labels(G, zone_pos_ls, id_dict)
 
@@ -723,6 +753,7 @@ for i in range(1, 39):
 
     for i in attack_ls:
         full_attack_zone[getZone2(i[0])][getZone2(i[1])] += 1
+        full_attack_zone[getZone2(i[1])][getZone2(i[0])] += 1
 
     # print(time_range_dict)
 
@@ -792,6 +823,27 @@ for i in full_name_list:
     full_pgr[i] /= relation_dict[i][i]
 
 # showPlot(full_name_list, full_data, full_eva, full_pgr)
+
+full_attack_zone_ls = []
+
+for i in range(18):
+    full_attack_zone_ls.append([])
+    for j in range(18):
+        if i == j:
+            full_attack_zone_ls[i].append(0)
+        elif full_attack_zone[i][j] == 0:
+            full_attack_zone_ls[i].append(float('inf'))
+        else:
+            full_attack_zone_ls[i].append(1 / pow(full_attack_zone[i][j], 1))
+
+for i in full_attack_zone_ls:
+    print(i)
+
+dis, edges = dijkstra(full_attack_zone_ls, 6)
+print(edges)
+
+
+
 showZone2Plot(full_attack_zone)
 
 single_ls = []
