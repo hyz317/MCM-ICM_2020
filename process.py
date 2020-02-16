@@ -309,7 +309,36 @@ def getPos(name_list, data):
             else:
                 num = store(dict, ls[2], ls[8], ls[9], num, 30)
                 # num = store(dict, ls[3], ls[10], ls[11][:-1], num, 11)
+
+    if "Huskies_Gate" in name_list:
+        dict["Huskies_Gate"] = [(93, 50)]
     return dict
+
+
+def getPassInfo(data):
+    num = 0
+    pos_ls = []
+    pos_name_ls = []
+    for ls in data:
+        if ls[1] == "Huskies" and ls[6] == "Pass" and ls[3] != "":
+            pos_ls.append(((eval(ls[8]), eval(ls[9])),
+                           (eval(ls[10]), eval(ls[11]))))
+    for j in pos_ls:
+        if j[0] not in pos_name_ls:
+            pos_name_ls.append(j[0])
+        if j[1] not in pos_name_ls:
+            pos_name_ls.append(j[1])
+
+    pos_dict = getEmptyMatrix(pos_name_ls)
+    # print(pos_ls)
+
+    for j in pos_ls:
+        pos_dict[j[0]][j[1]] += 1
+        pos_dict[j[1]][j[0]] += 1
+
+    # print(pos_dict)
+
+    return pos_name_ls, pos_dict
 
 
 def showPlot(name_list, data, edge_dict, pgr):
@@ -327,7 +356,7 @@ def showPlot(name_list, data, edge_dict, pgr):
     # pgr = pagerank(edge_dict, name_list)
 
     for member in dict:
-        print(member, id)
+        # print(member, id)
         id += 1
 
         if member[8] == 'G':
@@ -364,10 +393,151 @@ def showPlot(name_list, data, edge_dict, pgr):
             if i in name2id and j in name2id:
                 G.add_edge(name2id[i], name2id[j], weight=edge_dict[i][j])
 
-    nx.draw_networkx_edges(G, pos_ls, width=[float(d['weight'] / 3) for (u, v, d) in G.edges(data=True)])
+    nx.draw_networkx_edges(G, pos_ls, width=[float(d['weight'] / 10) for (u, v, d) in G.edges(data=True)])
     nx.draw_networkx_nodes(G, pos_ls, node_color=color_ls, node_size=size_ls)
     nx.draw_networkx_labels(G, pos_ls, id_dict)
 
+    plt.gca().invert_yaxis()
+    plt.show()
+
+
+def showAttackPlot(pos_list, pos_dict):
+    G = nx.Graph()
+    # print(pos_dict)
+    for i in range(pos_list.__len__()):
+        for j in range(pos_list.__len__()):
+            G.add_edge(i, j, weight=pos_dict[pos_list[i]][pos_list[j]])
+
+    nx.draw_networkx_edges(G, pos_list, width=[float(d['weight'] * 1) for (u, v, d) in G.edges(data=True)])
+    nx.draw_networkx_nodes(G, pos_list)
+    plt.xlim(0, 100)
+    plt.ylim(0, 100)
+    plt.gca().invert_yaxis()
+    plt.show()
+
+
+def getZone(pos):
+    if pos[0] <= 30:
+        if pos[1] >= 75:
+            return 'LWF'
+        elif pos[1] >= 50:
+            return 'LMF'
+        elif pos[1] >= 25:
+            return 'LCB'
+        else:
+            return 'LB'
+    elif pos[0] >= 70:
+        if pos[1] >= 75:
+            return 'RWF'
+        elif pos[1] >= 50:
+            return 'RMF'
+        elif pos[1] >= 25:
+            return 'RCB'
+        else:
+            return 'RB'
+    else:
+        if pos[1] >= 85.7:
+            return 'CF'
+        elif pos[1] >= 71.4:
+            return 'SS'
+        elif pos[1] >= 57.1:
+            return 'CAM'
+        elif pos[1] >= 42.9:
+            return 'CMF'
+        elif pos[1] >= 28.6:
+            return 'CB'
+        else:
+            return 'GK'
+
+
+def getZone2(pos):
+    if pos[0] == 100:
+        pos = (99, pos[1])
+    if pos[1] == 100:
+        pos = (pos[0], 99)
+    return int(pos[0] / 33.3) * 6 + int(pos[1] / 16.7)
+
+
+def showZonePlot(pos_list, pos_dict):
+    zone_name_ls = ['LWF', 'LMF', 'LCB', 'LB',
+                    'RWF', 'RMF', 'RCB', 'RB',
+                    'CF', 'SS', 'CAM', 'CMF', 'CDM', 'CB', 'GK']
+    zone_pos_ls = [(87.5, 15), (62.5, 15), (37.5, 15), (12.5, 15),
+                   (87.5, 85), (62.5, 85), (37.5, 85), (12.5, 85),
+                   (92.9, 50), (78.6, 50), (64.3, 50), (50.0, 50), (35.7, 50), (21.4, 50), (7.14, 50)]
+    G = nx.Graph()
+    # print(pos_dict)
+
+    zone_dict = getEmptyMatrix(zone_name_ls)
+
+    for i in pos_list:
+        for j in pos_list:
+            zone_dict[getZone(i)][getZone(j)] += pos_dict[i][j]
+
+    for i in range(zone_name_ls.__len__()):
+        for j in range(zone_name_ls.__len__()):
+            G.add_edge(i, j, weight=zone_dict[zone_name_ls[i]][zone_name_ls[j]])
+
+    nx.draw_networkx_edges(G, zone_pos_ls, width=[float(d['weight'] / 10) for (u, v, d) in G.edges(data=True)])
+    nx.draw_networkx_nodes(G, zone_pos_ls)
+    # nx.draw_networkx_labels(G, zone_pos_ls, id_dict)
+
+    plt.xlim(0, 100)
+    plt.ylim(0, 100)
+    plt.gca().invert_yaxis()
+    plt.show()
+
+
+def showZone2Plot(pos_list, pos_dict):
+    zone_pos_ls = []
+    zone_name_ls = range(18)
+
+    for i in range(3):
+        for j in range(6):
+            zone_pos_ls.append((100/12 + 100*j/6, 100/6 + 100*i/3))
+
+    G = nx.Graph()
+    # print(zone_pos_ls)
+
+    zone_dict = getEmptyMatrix(zone_name_ls)
+
+    for i in pos_list:
+        for j in pos_list:
+            zone_dict[getZone2(i)][getZone2(j)] += pos_dict[i][j]
+
+    for i in range(zone_name_ls.__len__()):
+        for j in range(zone_name_ls.__len__()):
+            G.add_edge(i, j, weight=zone_dict[zone_name_ls[i]][zone_name_ls[j]])
+
+    nx.draw_networkx_edges(G, zone_pos_ls, width=[float(d['weight'] / 10) for (u, v, d) in G.edges(data=True)])
+    nx.draw_networkx_nodes(G, zone_pos_ls)
+    # nx.draw_networkx_labels(G, zone_pos_ls, id_dict)
+
+    plt.xlim(0, 100)
+    plt.ylim(0, 100)
+    plt.gca().invert_yaxis()
+    plt.show()
+
+
+def showZone2Plot(zone_dict):
+    zone_pos_ls = []
+
+    for i in range(3):
+        for j in range(6):
+            zone_pos_ls.append((100/12 + 100*j/6, 100/6 + 100*i/3))
+
+    G = nx.Graph()
+
+    for i in range(18):
+        for j in range(18):
+            G.add_edge(i, j, weight=zone_dict[i][j])
+
+    nx.draw_networkx_edges(G, zone_pos_ls, width=[float(d['weight'] / 100) for (u, v, d) in G.edges(data=True)])
+    nx.draw_networkx_nodes(G, zone_pos_ls)
+    # nx.draw_networkx_labels(G, zone_pos_ls, id_dict)
+
+    plt.xlim(0, 100)
+    plt.ylim(0, 100)
     plt.gca().invert_yaxis()
     plt.show()
 
@@ -399,20 +569,172 @@ def pagerank(net, name_list):
     return dict
 
 
+def getEffectiveAttack(name_list, data):
+    num = 0
+    endnum = 0
+    name_list.append("Huskies_Gate")
+    dict = getEmptyMatrix(name_list)
+    pos_ls = []
+    pos_name_ls = []
+
+    while endnum < data.__len__() and num < data.__len__():
+        pass_num = 0
+        duel_num = 0
+        tmp_ls = []
+        player_ls = []
+
+        if data[num][6] != "Free Kick" and data[num][6] != "Pass":
+            num += 1
+            endnum += 1
+            continue
+
+        if data[num][1] != "Huskies":
+            num += 1
+            endnum += 1
+            continue
+
+        while endnum < data.__len__():
+
+            if (data[endnum][6] == "Free Kick" or
+                data[endnum][7] == "Acceleration" or
+                data[endnum][7] == "Touch") and data[endnum][1] == "Huskies" and duel_num < 3:
+
+                if data[endnum][3] != "":
+                    player_ls.append((data[endnum][2], data[endnum][3]))
+                    tmp_ls.append(((eval(data[endnum][8]), eval(data[endnum][9])),
+                                   (eval(data[endnum][10]), eval(data[endnum][11]))))
+
+                endnum += 1
+                duel_num = 0
+
+            elif data[endnum][6] == "Pass" and data[endnum][1] == "Huskies" and duel_num < 3:
+
+                if data[endnum][3] != "":
+                    pass_num += 1
+                    tmp_ls.append(((eval(data[endnum][8]), eval(data[endnum][9])),
+                                   (eval(data[endnum][10]), eval(data[endnum][11]))))
+                    player_ls.append((data[endnum][2], data[endnum][3]))
+
+                endnum += 1
+                # print(endnum)
+                duel_num = 0
+
+            elif data[endnum][6] == "Duel" and duel_num < 3 and data[endnum][1] == "Huskies":
+                endnum += 1
+                duel_num += 1
+            elif pass_num < 2 or data[endnum][6] != "Shot":
+                num = endnum
+                break
+            else:
+                player_ls.append((data[endnum][2], "Huskies_Gate"))
+
+                for j in player_ls:
+                    dict[j[0]][j[1]] += 10
+                    dict[j[1]][j[0]] += 10
+                    # if j[1] == "Huskies_Gate":
+                    # print(j[0] + "!")
+
+                tmp_ls.append(((eval(data[endnum][8]), eval(data[endnum][9])),
+                               (93, 50)))
+                # print("({0}, {1}) {2}".format(num + 2, endnum + 1, tmp_ls))
+                pos_ls += tmp_ls
+                num = endnum
+                break
+
+    for j in pos_ls:
+        if j[0] not in pos_name_ls:
+            pos_name_ls.append(j[0])
+        if j[1] not in pos_name_ls:
+            pos_name_ls.append(j[1])
+
+    pos_dict = getEmptyMatrix(pos_name_ls)
+    # print(pos_ls)
+
+    for j in pos_ls:
+        pos_dict[j[0]][j[1]] += 1
+        pos_dict[j[1]][j[0]] += 1
+
+    # showPlot(name_list, data, dict, pagerank(dict, name_list))
+    # showAttackPlot(pos_name_ls, pos_dict)
+    # showZonePlot(pos_name_ls, pos_dict)
+    name_list.remove("Huskies_Gate")
+
+    return dict, pos_ls
+
+
+def getAverageByTime(data):
+    pos_ls = []
+    for time in range(5, 95, 5):
+        print(time)
+        x_ls = []
+        y_ls = []
+        for i in data:
+            if i[4] == '1H':
+                half = 0
+            else:
+                half = 45
+            if eval(i[5]) / 60 + half < time - 5:
+                continue
+            if eval(i[5]) / 60 + half > time + half:
+                break
+            if i[1] == "Huskies":
+                if i[8]:
+                    x_ls.append(eval(i[8]))
+                    y_ls.append(eval(i[9]))
+        pos_ls.append((np.mean(x_ls), np.mean(y_ls)))
+        # print(time, np.mean(x_ls), np.mean(y_ls))
+
+    id_dict = {}
+
+    for i in range(5, 95, 5):
+        id_dict[int(i/5-1)] = i
+
+    G = nx.Graph()
+    for i in range(17):
+        G.add_edge(i, i+1, weight=1)
+    nx.draw_networkx_edges(G, pos_ls, width=[float(d['weight']) for (u, v, d) in G.edges(data=True)])
+    nx.draw_networkx_nodes(G, pos_ls, node_size=200)
+    nx.draw_networkx_labels(G, pos_ls, id_dict)
+    plt.xlim(0, 100)
+    plt.ylim(0, 100)
+    plt.gca().invert_yaxis()
+    plt.show()
+
+
 full_data = read()
 full_name_list = getNameList(full_data)
 relation_dict = getEmptyMatrix(full_name_list)
 full_eva = getEmptyMatrix(full_name_list)
+full_zone = getEmptyMatrix(range(18))
+full_attack_zone = getEmptyMatrix(range(18))
 full_pgr = {}
-print(full_eva.__sizeof__())
 
 for i in range(1, 39):
     match_data = getMatchData(i, full_data)
 
     name_list = getNameList(match_data)
     time_range_dict = getTimeRangeDict(name_list, match_data)
+    pass_ls, pass_dic = getPassInfo(match_data)
+    attack_dic, attack_ls = getEffectiveAttack(name_list, match_data)
+
+    for i in pass_ls:
+        for j in pass_ls:
+            full_zone[getZone2(i)][getZone2(j)] += pass_dic[i][j]
+
+    for i in attack_ls:
+        full_attack_zone[getZone2(i[0])][getZone2(i[1])] += 1
 
     # print(time_range_dict)
+
+    # test start
+
+    # if i == 14:
+        # getEffectiveAttack(name_list, match_data)
+        # tmpls, tmpdic = getPassInfo(match_data)
+        # showZone2Plot(tmpls, tmpdic)
+        # getAverageByTime(match_data)
+
+    # test end
 
     for j in name_list:
         for k in name_list:
@@ -438,6 +760,24 @@ for i in range(1, 39):
         else:
             full_pgr[j] = pgr[j]
 
+
+
+    '''
+    if i == 1:
+        pass_dict = {}
+        for j in name_list:
+            pass_dict[j] = 0
+        for j in match_data:
+            if j[6] == "Pass" and j[1] == "Huskies":
+                pass_dict[j[2]] += 1
+        pass_ls = sorted(pass_dict.items(), key=lambda x:x[1], reverse=True)
+        for i in pass_ls:
+            print("{0}\t{1}".format(i[0], i[1]))
+        pgr_ls = sorted(pgr.items(), reverse=True, key=lambda x: x[1])
+        for i in pgr_ls:
+            print("{0}\t{1}".format(i[0], i[1]))
+    '''
+
     # print(pgr)
     # showPlot(name_list, match_data, eva, pgr)
 
@@ -451,7 +791,8 @@ for i in full_name_list:
 for i in full_name_list:
     full_pgr[i] /= relation_dict[i][i]
 
-showPlot(full_name_list, full_data, full_eva, full_pgr)
+# showPlot(full_name_list, full_data, full_eva, full_pgr)
+showZone2Plot(full_attack_zone)
 
 single_ls = []
 double_ls = []
@@ -472,19 +813,13 @@ for i in full_name_list:
                 break
             triple_ls.append((i, j, k, full_eva[i][j] + full_eva[j][k] + full_eva[k][i]))
 
-single_ls = sorted(full_pgr.items(), reverse=True, key=lambda x:x[1])
-double_ls = sorted(double_ls, reverse=True, key=lambda x:x[2])
-triple_ls = sorted(triple_ls, reverse=True, key=lambda x:x[3])
+single_ls = sorted(full_pgr.items(), reverse=True, key=lambda x: x[1])
+double_ls = sorted(double_ls, reverse=True, key=lambda x: x[2])
+triple_ls = sorted(triple_ls, reverse=True, key=lambda x: x[3])
 
 # for i in range(10):
 #     print("[#{0}]\t{1}\t{2}\t{3}\t{4}".format(i+1, triple_ls[i][0][8:], triple_ls[i][1][8:],
 #                                               triple_ls[i][2][8:], triple_ls[i][3]))
 
-print(single_ls)
-
 for i in range(10):
-    print("[#{0}]\t{1}\t{2}".format(i+1, single_ls[i][0], single_ls[i][1]))
-
-# print(relation_dict)
-
-
+    print("[#{0}]\t{1}\t{2}".format(i + 1, single_ls[i][0], single_ls[i][1]))
