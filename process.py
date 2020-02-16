@@ -12,7 +12,7 @@ def sigmoid(x):
 
 # read csv file.
 def read():
-    with open("./fullevents.csv", 'r') as f:
+    with open("fullevents.csv", 'r') as f:
         full_ls = []
         for i in f.readlines():
             ls = i[:-1].split(',')
