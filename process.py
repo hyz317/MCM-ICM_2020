@@ -731,57 +731,57 @@ def getAverageByTime(data):
     plt.show()
 
 
-full_data = read()
-full_name_list = getNameList(full_data)
-relation_dict = getEmptyMatrix(full_name_list)
-full_eva = getEmptyMatrix(full_name_list)
-full_zone = getEmptyMatrix(range(18))
-full_attack_zone = getEmptyMatrix(range(18))
-full_pgr = {}
-var_ls = []
-attack_var_ls = []
+# full_data = read()
+# full_name_list = getNameList(full_data)
+# relation_dict = getEmptyMatrix(full_name_list)
+# full_eva = getEmptyMatrix(full_name_list)
+# full_zone = getEmptyMatrix(range(18))
+# full_attack_zone = getEmptyMatrix(range(18))
+# full_pgr = {}
+# var_ls = []
+# attack_var_ls = []
 
-for i in range(1, 39):
-    match_data = getMatchData(i, full_data)
+# for i in range(1, 39):
+#     match_data = getMatchData(i, full_data)
 
-    name_list = getNameList(match_data)
-    time_range_dict = getTimeRangeDict(name_list, match_data)
-    pass_ls, pass_dic = getPassInfo(match_data)
-    attack_dic, attack_ls = getEffectiveAttack(name_list, match_data)
-    tmp_zone = getEmptyMatrix(range(18))
-    tmp_attack_zone = getEmptyMatrix(range(18))
-    degree_ls = []
+#     name_list = getNameList(match_data)
+#     time_range_dict = getTimeRangeDict(name_list, match_data)
+#     pass_ls, pass_dic = getPassInfo(match_data)
+#     attack_dic, attack_ls = getEffectiveAttack(name_list, match_data)
+#     tmp_zone = getEmptyMatrix(range(18))
+#     tmp_attack_zone = getEmptyMatrix(range(18))
+#     degree_ls = []
 
-    for i in pass_ls:
-        for j in pass_ls:
-            full_zone[getZone2(i)][getZone2(j)] += pass_dic[i][j]
-            tmp_zone[getZone2(i)][getZone2(j)] += pass_dic[i][j]
+#     for i in pass_ls:
+#         for j in pass_ls:
+#             full_zone[getZone2(i)][getZone2(j)] += pass_dic[i][j]
+#             tmp_zone[getZone2(i)][getZone2(j)] += pass_dic[i][j]
 
-    for i in attack_ls:
-        full_attack_zone[getZone2(i[0])][getZone2(i[1])] += 1
-        full_attack_zone[getZone2(i[1])][getZone2(i[0])] += 1
-        tmp_attack_zone[getZone2(i[0])][getZone2(i[1])] += 1
-        tmp_attack_zone[getZone2(i[1])][getZone2(i[0])] += 1
+#     for i in attack_ls:
+#         full_attack_zone[getZone2(i[0])][getZone2(i[1])] += 1
+#         full_attack_zone[getZone2(i[1])][getZone2(i[0])] += 1
+#         tmp_attack_zone[getZone2(i[0])][getZone2(i[1])] += 1
+#         tmp_attack_zone[getZone2(i[1])][getZone2(i[0])] += 1
 
-    for i in range(18):
-        sum = 0
-        for j in range(18):
-            if i != j:
-                sum += tmp_zone[i][j]
-        degree_ls.append(sum)
+#     for i in range(18):
+#         sum = 0
+#         for j in range(18):
+#             if i != j:
+#                 sum += tmp_zone[i][j]
+#         degree_ls.append(sum)
 
-    var_ls.append(np.var(degree_ls))
-    degree_ls = []
+#     var_ls.append(np.var(degree_ls))
+#     degree_ls = []
 
-    for i in range(18):
-        sum = 0
-        for j in range(18):
-            if i != j:
-                sum += tmp_attack_zone[i][j]
-        degree_ls.append(sum)
+#     for i in range(18):
+#         sum = 0
+#         for j in range(18):
+#             if i != j:
+#                 sum += tmp_attack_zone[i][j]
+#         degree_ls.append(sum)
 
-    print(degree_ls)
-    attack_var_ls.append(np.var(degree_ls))
+#     print(degree_ls)
+#     attack_var_ls.append(np.var(degree_ls))
 
     # print(time_range_dict)
 
@@ -795,29 +795,29 @@ for i in range(1, 39):
 
     # test end
 
-    for j in name_list:
-        for k in name_list:
-            relation_dict[j][k] += 1
+    # for j in name_list:
+    #     for k in name_list:
+    #         relation_dict[j][k] += 1
 
-    stab = stability(name_list, match_data)
-    acu = accuracy(name_list, match_data)
-    dif = difficulty(name_list, match_data)
-    time_dict = personReward(time_range_dict)
+    # stab = stability(name_list, match_data)
+    # acu = accuracy(name_list, match_data)
+    # dif = difficulty(name_list, match_data)
+    # time_dict = personReward(time_range_dict)
 
-    ws, wa, wd, stab, acu, dif = getWeight(stab, acu, dif, name_list)
-    eva = evaluation(name_list, stab, acu, dif, ws, wa, wd, time_dict)
+    # ws, wa, wd, stab, acu, dif = getWeight(stab, acu, dif, name_list)
+    # eva = evaluation(name_list, stab, acu, dif, ws, wa, wd, time_dict)
 
-    for j in name_list:
-        for k in name_list:
-            full_eva[j][k] += eva[j][k]
+    # for j in name_list:
+    #     for k in name_list:
+    #         full_eva[j][k] += eva[j][k]
 
-    pgr = pagerank(eva, name_list)
+    # pgr = pagerank(eva, name_list)
 
-    for j in name_list:
-        if j in full_pgr:
-            full_pgr[j] += pgr[j]
-        else:
-            full_pgr[j] = pgr[j]
+    # for j in name_list:
+    #     if j in full_pgr:
+    #         full_pgr[j] += pgr[j]
+    #     else:
+    #         full_pgr[j] = pgr[j]
 
 
 
@@ -840,58 +840,58 @@ for i in range(1, 39):
     # print(pgr)
     # showPlot(name_list, match_data, eva, pgr)
 
-for i in full_name_list:
-    for j in full_name_list:
-        if relation_dict[i][j] == 0:
-            full_eva[i][j] = 0
-        else:
-            full_eva[i][j] /= relation_dict[i][j]
+# for i in full_name_list:
+#     for j in full_name_list:
+#         if relation_dict[i][j] == 0:
+#             full_eva[i][j] = 0
+#         else:
+#             full_eva[i][j] /= relation_dict[i][j]
 
-for i in full_name_list:
-    full_pgr[i] /= relation_dict[i][i]
+# for i in full_name_list:
+#     full_pgr[i] /= relation_dict[i][i]
 
 # showPlot(full_name_list, full_data, full_eva, full_pgr)
 
-full_attack_zone_ls = []
+# full_attack_zone_ls = []
 
-for i in range(18):
-    full_attack_zone_ls.append([])
-    for j in range(18):
-        if i == j:
-            full_attack_zone_ls[i].append(0)
-        elif full_attack_zone[i][j] == 0:
-            full_attack_zone_ls[i].append(float('inf'))
-        else:
-            full_attack_zone_ls[i].append(1 / pow(full_attack_zone[i][j], 1))
+# for i in range(18):
+#     full_attack_zone_ls.append([])
+#     for j in range(18):
+#         if i == j:
+#             full_attack_zone_ls[i].append(0)
+#         elif full_attack_zone[i][j] == 0:
+#             full_attack_zone_ls[i].append(float('inf'))
+#         else:
+#             full_attack_zone_ls[i].append(1 / pow(full_attack_zone[i][j], 1))
 
-dis, edges = dijkstra(full_attack_zone_ls, 6)
+# dis, edges = dijkstra(full_attack_zone_ls, 6)
 
 
 
-showZone2Plot(full_attack_zone)
+# showZone2Plot(full_attack_zone)
 
-single_ls = []
-double_ls = []
-triple_ls = []
+# single_ls = []
+# double_ls = []
+# triple_ls = []
 
-for i in full_name_list:
-    for j in full_name_list:
-        if i == j:
-            break
-        double_ls.append((i, j, full_eva[i][j]))
+# for i in full_name_list:
+#     for j in full_name_list:
+#         if i == j:
+#             break
+#         double_ls.append((i, j, full_eva[i][j]))
 
-for i in full_name_list:
-    for j in full_name_list:
-        if i == j:
-            break
-        for k in full_name_list:
-            if j == k:
-                break
-            triple_ls.append((i, j, k, full_eva[i][j] + full_eva[j][k] + full_eva[k][i]))
+# for i in full_name_list:
+#     for j in full_name_list:
+#         if i == j:
+#             break
+#         for k in full_name_list:
+#             if j == k:
+#                 break
+#             triple_ls.append((i, j, k, full_eva[i][j] + full_eva[j][k] + full_eva[k][i]))
 
-single_ls = sorted(full_pgr.items(), reverse=True, key=lambda x: x[1])
-double_ls = sorted(double_ls, reverse=True, key=lambda x: x[2])
-triple_ls = sorted(triple_ls, reverse=True, key=lambda x: x[3])
+# single_ls = sorted(full_pgr.items(), reverse=True, key=lambda x: x[1])
+# double_ls = sorted(double_ls, reverse=True, key=lambda x: x[2])
+# triple_ls = sorted(triple_ls, reverse=True, key=lambda x: x[3])
 
 # for i in range(10):
 #     print("[#{0}]\t{1}\t{2}\t{3}\t{4}".format(i+1, triple_ls[i][0][8:], triple_ls[i][1][8:],
