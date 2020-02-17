@@ -738,6 +738,8 @@ full_eva = getEmptyMatrix(full_name_list)
 full_zone = getEmptyMatrix(range(18))
 full_attack_zone = getEmptyMatrix(range(18))
 full_pgr = {}
+var_ls = []
+attack_var_ls = []
 
 for i in range(1, 39):
     match_data = getMatchData(i, full_data)
@@ -746,14 +748,40 @@ for i in range(1, 39):
     time_range_dict = getTimeRangeDict(name_list, match_data)
     pass_ls, pass_dic = getPassInfo(match_data)
     attack_dic, attack_ls = getEffectiveAttack(name_list, match_data)
+    tmp_zone = getEmptyMatrix(range(18))
+    tmp_attack_zone = getEmptyMatrix(range(18))
+    degree_ls = []
 
     for i in pass_ls:
         for j in pass_ls:
             full_zone[getZone2(i)][getZone2(j)] += pass_dic[i][j]
+            tmp_zone[getZone2(i)][getZone2(j)] += pass_dic[i][j]
 
     for i in attack_ls:
         full_attack_zone[getZone2(i[0])][getZone2(i[1])] += 1
         full_attack_zone[getZone2(i[1])][getZone2(i[0])] += 1
+        tmp_attack_zone[getZone2(i[0])][getZone2(i[1])] += 1
+        tmp_attack_zone[getZone2(i[1])][getZone2(i[0])] += 1
+
+    for i in range(18):
+        sum = 0
+        for j in range(18):
+            if i != j:
+                sum += tmp_zone[i][j]
+        degree_ls.append(sum)
+
+    var_ls.append(np.var(degree_ls))
+    degree_ls = []
+
+    for i in range(18):
+        sum = 0
+        for j in range(18):
+            if i != j:
+                sum += tmp_attack_zone[i][j]
+        degree_ls.append(sum)
+
+    print(degree_ls)
+    attack_var_ls.append(np.var(degree_ls))
 
     # print(time_range_dict)
 
@@ -836,11 +864,7 @@ for i in range(18):
         else:
             full_attack_zone_ls[i].append(1 / pow(full_attack_zone[i][j], 1))
 
-for i in full_attack_zone_ls:
-    print(i)
-
 dis, edges = dijkstra(full_attack_zone_ls, 6)
-print(edges)
 
 
 
@@ -873,5 +897,5 @@ triple_ls = sorted(triple_ls, reverse=True, key=lambda x: x[3])
 #     print("[#{0}]\t{1}\t{2}\t{3}\t{4}".format(i+1, triple_ls[i][0][8:], triple_ls[i][1][8:],
 #                                               triple_ls[i][2][8:], triple_ls[i][3]))
 
-for i in range(10):
-    print("[#{0}]\t{1}\t{2}".format(i + 1, single_ls[i][0], single_ls[i][1]))
+# for i in range(10):
+#     print("[#{0}]\t{1}\t{2}".format(i + 1, single_ls[i][0], single_ls[i][1]))
