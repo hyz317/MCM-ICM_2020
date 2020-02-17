@@ -1,4 +1,5 @@
 import process
+import matplotlib.pyplot as plt
 
 attack_pattern = {}
 
@@ -29,6 +30,7 @@ def get_attack_pattern(name_list, data):
     op = []
     while cur < data.__len__():
         if data[cur][1] == "Huskies" and data[cur][6] == "Shot":
+            # print(str(cur))
             op.append('Shot')
             recurseId = cur - 1
             duelCnt = 0
@@ -40,6 +42,7 @@ def get_attack_pattern(name_list, data):
                         break
                 elif data[recurseId][1] == "Huskies" and (data[recurseId][6] == "Pass" or data[recurseId][7] == "Free kick cross"):
                     passCnt += 1
+                    duelCnt = 0
                     op.append(data[recurseId][7])
                 elif data[recurseId][1] == "Opponent":
                     break
@@ -57,6 +60,7 @@ def get_attack_pattern(name_list, data):
         cur += 1
 
 full_data = process.read()
+diversity = []
 for i in range(1, 39):
     attack_pattern = {}
     match_data = process.getMatchData(i, full_data)
@@ -64,4 +68,6 @@ for i in range(1, 39):
     time_range_dict = process.getTimeRangeDict(name_list, match_data)
 
     get_attack_pattern(name_list, match_data)
-    print(attack_pattern)
+    diversity.append(len(attack_pattern))
+plt.bar(range(1,39), diversity)
+plt.show()
